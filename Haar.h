@@ -167,8 +167,8 @@ class Haar : public Classifier {
 public:
 
     Haar(const vector<string> &_class_list) : Classifier(_class_list) {
-        train_model.open("viola-jones-feature-9");
-        test_model.open("viola-jones-feature-test-9");
+        train_model.open("viola-jones-feature-all");
+        test_model.open("viola-jones-feature-test-all");
         if (!train_model.is_open() || !test_model.is_open()) {
             cerr << "Failed to create model file\n";
             return;
@@ -244,9 +244,9 @@ protected:
         
         Image f1 = apply_filters(get_integral_image(img));
 
-        //const Image& f2 = apply_filters(get_integral_image(img));
+        const Image& f2 = apply_filters(get_integral_image(img));
 
-        //f1.append(f2);
+        f1.append(f2);
 
         return f1.unroll('x');
     }
@@ -264,14 +264,14 @@ protected:
                     break;
                 case LEFT:
                     x = 0;
-                    y = 0;//(integral_img.height() - f.height) / 2;
+                    y = (integral_img.height() - f.height) / 2;
                     break;
                 case RIGHT:
                     x = integral_img.width() - f.width;
                     y = 0;
                     break;
 		case TOP:
-		    x = 0;//(integral_img.width() - f.width) / 2;
+		    x = (integral_img.width() - f.width) / 2;
 	 	    y = 0;	
 		    break;
                 case BOTTOM:
@@ -300,6 +300,7 @@ protected:
     void create_filters() {
         cout << "creating filters\n";
         int filter_count = 0;
+        
         add_bagle_filters(sampled_image_size, filters);
         cout << "bagel:" << filters.size() - filter_count << endl;
         filter_count = filters.size();
@@ -344,10 +345,18 @@ protected:
         cout << "hotdog:" << filters.size() - filter_count << endl;
         filter_count = filters.size();
        // draw_filters(filters, "filters/hotdog_filters");
-        //filters.clear();
+        //filters.clear();        
+        add_popcorn_filters(sampled_image_size, filters);
+        cout << "popcorn:" << filters.size() - filter_count << endl;
+        filter_count = filters.size();
+        //draw_filters(filters,"filters/popcorn_filters");
+        
+        add_random_filters(sampled_image_size, filters);
+        cout << "random:" << filters.size() - filter_count << endl;
+        //draw_filters(filters, "filters/random");
         
         cout << "total number of filters:" << filters.size() << endl << endl;
-        //draw_filters(filters,"all_filters");
+ 
     }
 
     void add_bagle_filters(const int img_size, vector<pair<Filter, Position> >& filters) {
@@ -455,15 +464,15 @@ protected:
         for (int i = 0; i < 5; ++i) {
             int s = static_cast<int> ((float) img_size * (float) (1.0 - i * 2.0 / 100.0));
             for (int j = 0; j < 5; ++j) {
-                filters.push_back(make_pair(Filter::create_filter(s, s).
-                        add_rectangle(s * .8, s * .1, NEGATIVE, CENTER), CENTER));
-                filters.push_back(make_pair(Filter::create_filter(s, s).
-                        add_rectangle(s * .8, s * .1, NEGATIVE, LEFT).
-                        add_rectangle(s * .8, s * .1, NEGATIVE, RIGHT), CENTER));
-                filters.push_back(make_pair(Filter::create_filter(s, s).
-                        add_rectangle(s * .8, s * .1, NEGATIVE, CENTER).
-                        add_rectangle(s * .8, s * .1, NEGATIVE, LEFT).
-                        add_rectangle(s * .8, s * .1, NEGATIVE, RIGHT), CENTER));
+//                filters.push_back(make_pair(Filter::create_filter(s, s).
+//                        add_rectangle(s * .8, s * .1, NEGATIVE, CENTER), CENTER));
+//                filters.push_back(make_pair(Filter::create_filter(s, s).
+//                        add_rectangle(s * .8, s * .1, NEGATIVE, LEFT).
+//                        add_rectangle(s * .8, s * .1, NEGATIVE, RIGHT), CENTER));
+//                filters.push_back(make_pair(Filter::create_filter(s, s).
+//                        add_rectangle(s * .8, s * .1, NEGATIVE, CENTER).
+//                        add_rectangle(s * .8, s * .1, NEGATIVE, LEFT).
+//                        add_rectangle(s * .8, s * .1, NEGATIVE, RIGHT), CENTER));
 
                 filters.push_back(make_pair(Filter::create_filter(s, s).
                         add_rectangle(s * .1, s * .8, NEGATIVE, CENTER), CENTER));
@@ -611,9 +620,7 @@ protected:
         // draw_filters(filters, "hotdog_filters");
     }
 
-    void add_popcorn_filters(const int img_size, vector<pair<Filter, Position> >& filters) {
-        //const int radius, const Position& position = RANDOM, const bool use_offset = true,
-        //const bool sign = NEGATIVE, const bool x_skewed = X_NO_SKEWED, const bool y_skewed = Y_NO_SKEWED)
+    void add_popcorn_filters(const int img_size, vector<pair<Filter, Position> >& filters) {        
         for (int i = 1; i <= 10; ++i) {
             int s = static_cast<int> ((float) img_size * (float) (1.0 - i * 1.0 / 100.0));
             //filters for whole image (white inside black)
@@ -622,9 +629,28 @@ protected:
             filters.push_back(make_pair(Filter::create_filter(img_size, img_size, NEGATIVE).
                     add_circle(s, CENTER, USE_OFFSET, POSITIVE), CENTER));
             filters.push_back(make_pair(Filter::create_filter(img_size, img_size, NEGATIVE).
-                    add_rectangle(s, s, POSITIVE, CENTER, USE_OFFSET), CENTER));
+                    add_rectangle(s*.8, s*.8, POSITIVE, CENTER, USE_OFFSET), CENTER));
             filters.push_back(make_pair(Filter::create_filter(img_size, img_size, NEGATIVE).
-                    add_rectangle(s, s, POSITIVE, CENTER, NO_OFFSET), CENTER));
+                    add_rectangle(s*.8, s*.8, POSITIVE, CENTER, NO_OFFSET), CENTER));
+        }
+    }
+    
+    void add_random_filters(const int img_size, vector<pair<Filter, Position> >& filters) {
+        
+        for (int i = 0; i <= 10; ++i) {
+            int s = static_cast<int> ((float) img_size * (float) (1.0 - i * 2.0 / 100.0));
+            //some only white filter (rectangle and circle)
+            filters.push_back(make_pair(Filter::create_filter(s, s, POSITIVE),CENTER));
+            filters.push_back(make_pair(Filter::create_filter(s, s, NEGATIVE).
+                    add_circle(s, CENTER, NO_OFFSET, POSITIVE), CENTER));
+            //some filters with horizontal rectangle
+            filters.push_back(make_pair(Filter::create_filter(s, s*.3, POSITIVE).
+                    add_rectangle(s*.8, s*.8*.3, NEGATIVE, TOP, USE_OFFSET), TOP));
+            filters.push_back(make_pair(Filter::create_filter(s, s*.3, POSITIVE).
+                    add_rectangle(s*.8, s*.8*.3, NEGATIVE, CENTER, USE_OFFSET), CENTER));
+            filters.push_back(make_pair(Filter::create_filter(s, s*.3, POSITIVE).
+                    add_rectangle(s*.8, s*.8*.3, NEGATIVE, BOTTOM, USE_OFFSET), BOTTOM));
+            
         }
     }
 
