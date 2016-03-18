@@ -18,6 +18,7 @@
 // See assignment handout for command line and project specifications.
 //
 #include "CImg.h"
+#include <Haar.h>
 #include <ctime>
 #include <iostream>
 #include <iomanip>
@@ -30,6 +31,10 @@
 #include <map>
 #include <numeric>
 
+#include <Classifier.h>
+#include <NearestNeighbor.h>
+
+typedef CImg<double> Image;
 //Use the cimg namespace to access the functions easily
 using namespace cimg_library;
 using namespace std;
@@ -38,8 +43,6 @@ using namespace std;
 // filename of 4th bagel image in the dataset
 typedef map<string, vector<string> > Dataset;
 
-#include <Classifier.h>
-#include <NearestNeighbor.h>
 
 // Figure out a list of files in a given directory.
 //
@@ -61,6 +64,7 @@ vector<string> files_in_directory(const string &directory, bool prepend_director
 
 int main(int argc, char **argv)
 {
+
   try {
     if(argc < 3)
       throw string("Insufficent number of arguments");
@@ -79,6 +83,8 @@ int main(int argc, char **argv)
     Classifier *classifier=0;
     if(algo == "nn")
       classifier = new NearestNeighbor(class_list);
+    else if(algo == "haar")
+      classifier = new Haar(class_list);
     else
       throw std::string("unknown classifier " + algo);
 
@@ -93,6 +99,7 @@ int main(int argc, char **argv)
   catch(const string &err) {
     cerr << "Error: " << err << endl;
   }
+
 }
 
 
