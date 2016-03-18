@@ -31,17 +31,22 @@
 #include <map>
 #include <numeric>
 
-#include <Classifier.h>
-#include <NearestNeighbor.h>
 
 typedef CImg<double> Image;
+
 //Use the cimg namespace to access the functions easily
 using namespace cimg_library;
 using namespace std;
 
 // Dataset data structure, set up so that e.g. dataset["bagel"][3] is
 // filename of 4th bagel image in the dataset
+
 typedef map<string, vector<string> > Dataset;
+
+
+#include <Classifier.h>
+#include <NearestNeighbor.h>
+#include <EigenClassifier.h>
 
 
 // Figure out a list of files in a given directory.
@@ -85,6 +90,8 @@ int main(int argc, char **argv)
       classifier = new NearestNeighbor(class_list);
     else if(algo == "haar")
       classifier = new Haar(class_list);
+    else if(algo == "ei")
+      classifier = new EigenClassifier(class_list);
     else
       throw std::string("unknown classifier " + algo);
 
