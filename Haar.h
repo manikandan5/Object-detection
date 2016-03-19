@@ -68,22 +68,22 @@ public:
                 break;
             case LEFT:
                 offset_x = use_offset ? (width / 2 > rectangle.width ? width / 2 - rectangle.width : width - rectangle.width) : 1;
-                rectangle.x = rand() % max(1,offset_x);
+                rectangle.x = rand() % max(1, offset_x);
                 rectangle.y = rand() % max(1, height - rectangle.height);
                 break;
             case RIGHT:
                 offset_x = use_offset ? (width / 2 > rectangle.width ? width / 2 - rectangle.width : width - rectangle.width) : 1;
                 base_x = width - rectangle.width;
-                rectangle.x = base_x - rand() % max(1,offset_x);
+                rectangle.x = base_x - rand() % max(1, offset_x);
                 rectangle.y = rand() % max(1, height - rectangle.height);
                 break;
             case TOP:
                 rectangle.x = rand() % max(1, width - rectangle.width);
                 offset_y = use_offset ? (height / 2 > rectangle.height ? height / 2 - rectangle.height : height - rectangle.height) : 1;
-                rectangle.y = rand() % max(1,offset_y);
+                rectangle.y = rand() % max(1, offset_y);
                 break;
             case BOTTOM:
-                rectangle.x = rand() % max(1,width - rectangle.width);
+                rectangle.x = rand() % max(1, width - rectangle.width);
                 base_y = height - rectangle.height;
                 offset_y = use_offset ? (height / 2 > rectangle.height ? height / 2 - rectangle.height : height - rectangle.height) : 1;
                 rectangle.y = base_y - rand() % max(1, offset_y);
@@ -167,40 +167,32 @@ class Haar : public Classifier {
 public:
 
     Haar(const vector<string> &_class_list) : Classifier(_class_list) {
-        train_model.open("viola-jones-feature-all");
-        test_model.open("viola-jones-feature-test-all");
-        if (!train_model.is_open() || !test_model.is_open()) {
-            cerr << "Failed to create model file\n";
-            return;
-        }
+        f();
     }
-    
-    ~Haar(){train_model.close(); test_model.close();}
+
+    ~Haar() {
+        
+    }
 
     // Nearest neighbor training. All this does is read in all the images, resize
     // them to a common size, convert to greyscale, and dump them as vectors to a file
 
     virtual void train(const Dataset &filenames) {
         srand(time(NULL));
-        //test_integral();return;
-        create_filters(); 
-        
+
+        create_filters();
+        save_filters();
+
+        ofstream m("vj-train-features");
         int c = 1;
         for (Dataset::const_iterator c_iter = filenames.begin(); c_iter != filenames.end(); ++c_iter) {
             cout << "Processing " << c_iter->first << endl;
-            //Utility::CreateDirectory(c_iter->first+"_gray");
             for (int i = 0; i < c_iter->second.size(); i++) {
-                write_feature(train_model, c, extract_features(c_iter->second[i]));
-//                Image img(c_iter->second[i].c_str());
-//                img = img.get_RGBtoHSI().get_channel(2);
-//                scale(img);
-//                img=img.resize(50,50);
-//                string n =c_iter->first+"_gray/"+Utility::NumberToString<int>(i)+".jpg";
-//                img.save(n.c_str());
+                write_feature(m, c, extract_features(c_iter->second[i]));
             }
             c++;
         }
-        
+        m.close();
     }
 
     void write_feature(ostream& s, int c, const Image& feature_values) {
@@ -212,17 +204,122 @@ public:
     }
 
     virtual string classify(const string &filename) {
-        write_feature(test_model, 0, extract_features(filename));
-        return "bagel";
+        cerr<<"total loaded filters:"<<filters.size()<<endl;
+        ofstream test("test-feature");
+        write_feature(test, 1, extract_features(filename));
+        test.close();
+        system("./svm_multiclass_classify test-feature vj-train-model2 vj_prediction");
+        ifstream p("vj_prediction");
+        int prediction = -1;
+        p>>prediction;
+        cout << "predicted class: " << prediction << ":" << class_list[prediction - 1] << endl;
+        //svm_multiclass_classify example4/test.dat example4/model example4/predictions
+
+        return class_list[prediction - 1];
+    }
+    
+    void f()
+    {
+        class_list[0]="bagel";
+        class_list[1]="bread";
+        class_list[2]="brownie";
+        class_list[3]="chickennugget";
+        class_list[4]="churro";
+        class_list[5]="croissant";
+        class_list[6]="frenchfries";
+        class_list[7]="hamburger";
+        class_list[8]="hotdog";
+        class_list[9]="jambalaya";
+        class_list[10]="kungpaochicken";
+        class_list[11]="lasagna";
+        class_list[12]="muffin";
+        class_list[13]="paella";
+        class_list[14]="pizza";
+        class_list[15]="popcorn";
+        class_list[16]="pudding";
+        class_list[17]="salad";
+        class_list[18]="salmon";
+        class_list[19]="scone";
+        class_list[20]="spaghetti";
+        class_list[21]="sushi";
+        class_list[22]="taco";
+        class_list[23]="tiramisu";
+        class_list[24]="waffle";
+        
     }
 
     virtual void load_model() {
-        // for (int c = 0; c < class_list.size(); c++)
-        //  models[class_list[c] ] = (CImg<double>(("haar_model." + class_list[c] + ".png").c_str()));
-        create_filters();
+        
+        ifstream file("generated-filters.txt");
+        while (true) {
+            Filter f(0, 0);
+            load_filter(f, file);
+
+            int p;
+            file >> p;
+
+            int rec_count;
+            file >> rec_count;
+            int z = 0;
+            for (int j = 0; j < rec_count; ++j) {
+                Filter r(0, 0);
+                load_filter(r, file);
+                if (r.width == 0 || r.height == 0) {
+                    cout << "zero rectangle\n";
+                    z++;
+                }
+                f.rectangles.push_back(r);
+            }
+            //cout<<"total r:"<<f.rectangles.size()<<","<<z<<endl;
+            filters.push_back(make_pair(f, (Position) p));
+
+            int centinel = 0;
+            file>>centinel;
+            if (centinel == -100) return;
+        }
     }
 
+    void load_filter(Filter& f, istream& file) {
+        file >> f.width;
+        file >> f.height;
+        file >> f.positive;
+        file >> f.x;
+        file >> f.y;
+    }
 
+    void save_filter(const Filter& f, ostream& file) {
+        file << f.width << " ";
+        file << f.height << " ";
+        file << f.positive << " ";
+        file << f.x << " ";
+        file << f.y << " ";
+    }
+
+    void save_filters() {
+        cout<<"saving filters...";
+        ofstream file("generated-filters.txt");
+
+        for (int i = 0; i < filters.size(); ++i) {
+            const pair<Filter, Position>& f = filters[i];
+            save_filter(f.first, file);
+
+            file << f.second << " ";
+            file << f.first.rectangles.size() << " ";
+
+            for (int j = 0; j < f.first.rectangles.size(); ++j) {
+                const Filter& r = f.first.rectangles[j];
+                save_filter(r, file);
+            }
+            if (i == filters.size() - 1)
+                file << -100;
+            else
+                file << -10;
+            file << "\n";
+        }
+
+        file.close();
+        cout<<"done.\n";
+    }
 
 protected:
     // extract features from an image, which in this case just involves resampling and 
@@ -241,7 +338,7 @@ protected:
         rotated_img = rotated_img.rotate(90, 2, 0).resize(sampled_image_size, sampled_image_size);
         normalize(img, img.mean(), img.variance());
         normalize(rotated_img, rotated_img.mean(), rotated_img.variance());
-        
+
         Image f1 = apply_filters(get_integral_image(img));
 
         const Image& f2 = apply_filters(get_integral_image(img));
@@ -270,21 +367,21 @@ protected:
                     x = integral_img.width() - f.width;
                     y = 0;
                     break;
-		case TOP:
-		    x = (integral_img.width() - f.width) / 2;
-	 	    y = 0;	
-		    break;
+                case TOP:
+                    x = (integral_img.width() - f.width) / 2;
+                    y = 0;
+                    break;
                 case BOTTOM:
                     x = 0;
                     y = integral_img.height() - f.height;
-		    break;
+                    break;
             }
 
             double sum = 0;
             for (int j = 0; j < f.rectangles.size(); ++j) {
                 const Filter& r = f.rectangles[j]; //cout<<"r.x:"<<r.x<<"\tr.y:"<< r.y<<endl;
                 double s = rectangle_sum(integral_img, make_pair(x + r.x, y + r.y),
-                        make_pair( r.x + r.width - 1,  r.y + r.height - 1));
+                        make_pair(r.x + r.width - 1, r.y + r.height - 1));
                 sum += s; // cout<<"s:"<<s<<endl;
             }
             //cout<<"sum:"<<sum<<"\ttotal:"<<rectangle_sum(integral_img, make_pair(f.x, f.y), 
@@ -298,9 +395,9 @@ protected:
     }
 
     void create_filters() {
-        cout << "creating filters\n";
+        cout << "creating filters....\n";
         int filter_count = 0;
-        
+
         add_bagle_filters(sampled_image_size, filters);
         cout << "bagel:" << filters.size() - filter_count << endl;
         filter_count = filters.size();
@@ -344,19 +441,19 @@ protected:
         add_hotdog_filters(sampled_image_size, filters);
         cout << "hotdog:" << filters.size() - filter_count << endl;
         filter_count = filters.size();
-       // draw_filters(filters, "filters/hotdog_filters");
+        // draw_filters(filters, "filters/hotdog_filters");
         //filters.clear();        
         add_popcorn_filters(sampled_image_size, filters);
         cout << "popcorn:" << filters.size() - filter_count << endl;
         filter_count = filters.size();
         //draw_filters(filters,"filters/popcorn_filters");
-        
+
         add_random_filters(sampled_image_size, filters);
         cout << "random:" << filters.size() - filter_count << endl;
         //draw_filters(filters, "filters/random");
-        
+
         cout << "total number of filters:" << filters.size() << endl << endl;
- 
+
     }
 
     void add_bagle_filters(const int img_size, vector<pair<Filter, Position> >& filters) {
@@ -464,15 +561,15 @@ protected:
         for (int i = 0; i < 5; ++i) {
             int s = static_cast<int> ((float) img_size * (float) (1.0 - i * 2.0 / 100.0));
             for (int j = 0; j < 5; ++j) {
-//                filters.push_back(make_pair(Filter::create_filter(s, s).
-//                        add_rectangle(s * .8, s * .1, NEGATIVE, CENTER), CENTER));
-//                filters.push_back(make_pair(Filter::create_filter(s, s).
-//                        add_rectangle(s * .8, s * .1, NEGATIVE, LEFT).
-//                        add_rectangle(s * .8, s * .1, NEGATIVE, RIGHT), CENTER));
-//                filters.push_back(make_pair(Filter::create_filter(s, s).
-//                        add_rectangle(s * .8, s * .1, NEGATIVE, CENTER).
-//                        add_rectangle(s * .8, s * .1, NEGATIVE, LEFT).
-//                        add_rectangle(s * .8, s * .1, NEGATIVE, RIGHT), CENTER));
+                //                filters.push_back(make_pair(Filter::create_filter(s, s).
+                //                        add_rectangle(s * .8, s * .1, NEGATIVE, CENTER), CENTER));
+                //                filters.push_back(make_pair(Filter::create_filter(s, s).
+                //                        add_rectangle(s * .8, s * .1, NEGATIVE, LEFT).
+                //                        add_rectangle(s * .8, s * .1, NEGATIVE, RIGHT), CENTER));
+                //                filters.push_back(make_pair(Filter::create_filter(s, s).
+                //                        add_rectangle(s * .8, s * .1, NEGATIVE, CENTER).
+                //                        add_rectangle(s * .8, s * .1, NEGATIVE, LEFT).
+                //                        add_rectangle(s * .8, s * .1, NEGATIVE, RIGHT), CENTER));
 
                 filters.push_back(make_pair(Filter::create_filter(s, s).
                         add_rectangle(s * .1, s * .8, NEGATIVE, CENTER), CENTER));
@@ -543,23 +640,21 @@ protected:
         }
     }
 
-    void add_frenchfry_filters(const int img_size, vector<pair<Filter, Position> >& filters) 
-    {
-        for (int i = 1; i < 5; ++i)
-        {
+    void add_frenchfry_filters(const int img_size, vector<pair<Filter, Position> >& filters) {
+        for (int i = 1; i < 5; ++i) {
             int s = static_cast<int> ((float) img_size * (float) (1.0 - i * 3.0 / 100.0));
-            filters.push_back(make_pair(Filter::create_filter(img_size, img_size).                        
-                        add_rectangle(s , s / 2, NEGATIVE, TOP, NO_OFFSET), CENTER));
-            filters.push_back(make_pair(Filter::create_filter(img_size, img_size).                        
-                        add_rectangle(s , s / 2, NEGATIVE, BOTTOM, NO_OFFSET), CENTER));
-            filters.push_back(make_pair(Filter::create_filter(img_size, img_size).                        
-                        add_rectangle(s , s / 2, NEGATIVE, LEFT, NO_OFFSET), CENTER));
-            filters.push_back(make_pair(Filter::create_filter(img_size, img_size).                        
-                        add_rectangle(s , s / 2, NEGATIVE, RIGHT, NO_OFFSET), CENTER));
-            
+            filters.push_back(make_pair(Filter::create_filter(img_size, img_size).
+                    add_rectangle(s, s / 2, NEGATIVE, TOP, NO_OFFSET), CENTER));
+            filters.push_back(make_pair(Filter::create_filter(img_size, img_size).
+                    add_rectangle(s, s / 2, NEGATIVE, BOTTOM, NO_OFFSET), CENTER));
+            filters.push_back(make_pair(Filter::create_filter(img_size, img_size).
+                    add_rectangle(s, s / 2, NEGATIVE, LEFT, NO_OFFSET), CENTER));
+            filters.push_back(make_pair(Filter::create_filter(img_size, img_size).
+                    add_rectangle(s, s / 2, NEGATIVE, RIGHT, NO_OFFSET), CENTER));
+
         }
     }
-    
+
     void add_hamburger_filters(const int img_size, vector<pair<Filter, Position> >& filters) {
         for (int i = 0; i < 5; ++i) {
             int outer_size = img_size;
@@ -620,7 +715,7 @@ protected:
         // draw_filters(filters, "hotdog_filters");
     }
 
-    void add_popcorn_filters(const int img_size, vector<pair<Filter, Position> >& filters) {        
+    void add_popcorn_filters(const int img_size, vector<pair<Filter, Position> >& filters) {
         for (int i = 1; i <= 10; ++i) {
             int s = static_cast<int> ((float) img_size * (float) (1.0 - i * 1.0 / 100.0));
             //filters for whole image (white inside black)
@@ -629,28 +724,28 @@ protected:
             filters.push_back(make_pair(Filter::create_filter(img_size, img_size, NEGATIVE).
                     add_circle(s, CENTER, USE_OFFSET, POSITIVE), CENTER));
             filters.push_back(make_pair(Filter::create_filter(img_size, img_size, NEGATIVE).
-                    add_rectangle(s*.8, s*.8, POSITIVE, CENTER, USE_OFFSET), CENTER));
+                    add_rectangle(s * .8, s * .8, POSITIVE, CENTER, USE_OFFSET), CENTER));
             filters.push_back(make_pair(Filter::create_filter(img_size, img_size, NEGATIVE).
-                    add_rectangle(s*.8, s*.8, POSITIVE, CENTER, NO_OFFSET), CENTER));
+                    add_rectangle(s * .8, s * .8, POSITIVE, CENTER, NO_OFFSET), CENTER));
         }
     }
-    
+
     void add_random_filters(const int img_size, vector<pair<Filter, Position> >& filters) {
-        
+
         for (int i = 0; i <= 10; ++i) {
             int s = static_cast<int> ((float) img_size * (float) (1.0 - i * 2.0 / 100.0));
             //some only white filter (rectangle and circle)
-            filters.push_back(make_pair(Filter::create_filter(s, s, POSITIVE),CENTER));
+            filters.push_back(make_pair(Filter::create_filter(s, s, POSITIVE), CENTER));
             filters.push_back(make_pair(Filter::create_filter(s, s, NEGATIVE).
                     add_circle(s, CENTER, NO_OFFSET, POSITIVE), CENTER));
             //some filters with horizontal rectangle
-            filters.push_back(make_pair(Filter::create_filter(s, s*.3, POSITIVE).
-                    add_rectangle(s*.8, s*.8*.3, NEGATIVE, TOP, USE_OFFSET), TOP));
-            filters.push_back(make_pair(Filter::create_filter(s, s*.3, POSITIVE).
-                    add_rectangle(s*.8, s*.8*.3, NEGATIVE, CENTER, USE_OFFSET), CENTER));
-            filters.push_back(make_pair(Filter::create_filter(s, s*.3, POSITIVE).
-                    add_rectangle(s*.8, s*.8*.3, NEGATIVE, BOTTOM, USE_OFFSET), BOTTOM));
-            
+            filters.push_back(make_pair(Filter::create_filter(s, s * .3, POSITIVE).
+                    add_rectangle(s * .8, s * .8 * .3, NEGATIVE, TOP, USE_OFFSET), TOP));
+            filters.push_back(make_pair(Filter::create_filter(s, s * .3, POSITIVE).
+                    add_rectangle(s * .8, s * .8 * .3, NEGATIVE, CENTER, USE_OFFSET), CENTER));
+            filters.push_back(make_pair(Filter::create_filter(s, s * .3, POSITIVE).
+                    add_rectangle(s * .8, s * .8 * .3, NEGATIVE, BOTTOM, USE_OFFSET), BOTTOM));
+
         }
     }
 
@@ -779,25 +874,25 @@ protected:
         print(img, "integral image");
 
 
-//        cout << rectangle_sum(img, make_pair(0, 0), make_pair(0, 0)) << endl << endl;
-//        cout << rectangle_sum(img, make_pair(0, 0), make_pair(3, 3)) << endl << endl;
-//        cout << rectangle_sum(img, make_pair(3, 3), make_pair(3, 3)) << endl << endl;
-//        cout << rectangle_sum(img, make_pair(1, 1), make_pair(3, 3)) << endl << endl;
-//        cout << rectangle_sum(img, make_pair(0, 0), make_pair(0, 3)) << endl << endl;
-//        cout << rectangle_sum(img, make_pair(1, 1), make_pair(3, 3)) << endl << endl;
-//        cout << rectangle_sum(img, make_pair(1, 2), make_pair(3, 2)) << endl << endl;
+        //        cout << rectangle_sum(img, make_pair(0, 0), make_pair(0, 0)) << endl << endl;
+        //        cout << rectangle_sum(img, make_pair(0, 0), make_pair(3, 3)) << endl << endl;
+        //        cout << rectangle_sum(img, make_pair(3, 3), make_pair(3, 3)) << endl << endl;
+        //        cout << rectangle_sum(img, make_pair(1, 1), make_pair(3, 3)) << endl << endl;
+        //        cout << rectangle_sum(img, make_pair(0, 0), make_pair(0, 3)) << endl << endl;
+        //        cout << rectangle_sum(img, make_pair(1, 1), make_pair(3, 3)) << endl << endl;
+        //        cout << rectangle_sum(img, make_pair(1, 2), make_pair(3, 2)) << endl << endl;
 
         Filter f1(4, 4), f2(4, 4, NEGATIVE), f3(3, 3);
         f1.add_rectangle(2, 2, NEGATIVE, TOP_LEFT, NO_OFFSET).add_rectangle(2, 2, NEGATIVE, BOTTOM_LEFT, USE_OFFSET);
         f2.add_rectangle(2, 2, POSITIVE, TOP_LEFT, NO_OFFSET).add_rectangle(2, 2, POSITIVE, BOTTOM_RIGHT, USE_OFFSET);
         f3.add_rectangle(2, 2, NEGATIVE, CENTER, USE_OFFSET);
-        
-        cout<<"f1-x:"<<f1.rectangles[0].x<<"\tf1-y:"<<f1.rectangles[0].y<<endl;
-        cout<<"f1-x:"<<f1.rectangles[1].x<<"\tf1-y:"<<f1.rectangles[1].y<<endl;
-        cout<<"f2-x:"<<f2.rectangles[0].x<<"\tf2-y:"<<f2.rectangles[0].y<<endl;
-        cout<<"f2-x:"<<f2.rectangles[1].x<<"\tf2-y:"<<f2.rectangles[1].y<<endl;
-        cout<<"f3-x:"<<f3.rectangles[0].x<<"\tf3-y:"<<f3.rectangles[0].y<<endl;
-        
+
+        cout << "f1-x:" << f1.rectangles[0].x << "\tf1-y:" << f1.rectangles[0].y << endl;
+        cout << "f1-x:" << f1.rectangles[1].x << "\tf1-y:" << f1.rectangles[1].y << endl;
+        cout << "f2-x:" << f2.rectangles[0].x << "\tf2-y:" << f2.rectangles[0].y << endl;
+        cout << "f2-x:" << f2.rectangles[1].x << "\tf2-y:" << f2.rectangles[1].y << endl;
+        cout << "f3-x:" << f3.rectangles[0].x << "\tf3-y:" << f3.rectangles[0].y << endl;
+
         filters.push_back(make_pair(f1, CENTER));
 
         Image feature = apply_filters(img);
@@ -807,7 +902,7 @@ protected:
         filters.push_back(make_pair(f2, CENTER));
         feature = apply_filters(img);
         print(feature, "features");
-        
+
         filters.clear();
         filters.push_back(make_pair(f3, CENTER));
         feature = apply_filters(img);
@@ -819,7 +914,6 @@ protected:
     static const int sampled_image_size = 50; // subsampled image resolution
     map<string, CImg<double> > models; // trained models
     vector<pair<Filter, Position> > filters;
-    ofstream train_model, test_model;
 };
 
 
