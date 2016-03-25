@@ -201,13 +201,7 @@ public:
         system("./svm_multiclass_learn -c .0000001 vj-train-features vj-model ");
     }
 
-    void write_feature(ostream& s, int c, const Image& feature_values) {
-        s << c << " ";
-        for (int k = 0; k < feature_values.width(); ++k) {
-            s << k + 1 << ":" << feature_values(k, 0) << " ";
-        }
-        s << "\n";
-    }
+    
 
     virtual string classify(const string &filename) {
         cerr<<"total loaded filters:"<<filters.size()<<endl;
@@ -224,24 +218,7 @@ public:
         return class_names[prediction - 1];
     }
     
-    void load_classnames()
-    {
-        ifstream names("class-names");
-        if(!names.is_open())
-        {
-            cerr<"Could not open class name file!\n";
-            return;
-        }
-        while(true)
-        {
-            string s;
-            names>>s;
-            if(s=="END")
-                break;
-            class_names.push_back(s);
-        }
-        names.close();
-    }
+   
 
     virtual void load_model() {
         load_classnames();
@@ -274,63 +251,18 @@ public:
         }
     }
 
-    void load_filter(Filter& f, istream& file) {
-        file >> f.width;
-        file >> f.height;
-        file >> f.positive;
-        file >> f.x;
-        file >> f.y;
-    }
-
-    void save_filter(const Filter& f, ostream& file) {
-        file << f.width << " ";
-        file << f.height << " ";
-        file << f.positive << " ";
-        file << f.x << " ";
-        file << f.y << " ";
-    }
-
-    void save_filters() {
-        cout<<"saving filters...";
-        ofstream file("generated-filters.txt");
-
-        for (int i = 0; i < filters.size(); ++i) {
-            const pair<Filter, Position>& f = filters[i];
-            save_filter(f.first, file);
-
-            file << f.second << " ";
-            file << f.first.rectangles.size() << " ";
-
-            for (int j = 0; j < f.first.rectangles.size(); ++j) {
-                const Filter& r = f.first.rectangles[j];
-                save_filter(r, file);
-            }
-            if (i == filters.size() - 1)
-                file << -100;
-            else
-                file << -10;
-            file << "\n";
-        }
-
-        file.close();
-        cout<<"done.\n";
-    }
     
-    void test(const Dataset &filenames)
-    {
-        create_filters();
-        for (Dataset::const_iterator c_iter = filenames.begin(); c_iter != filenames.end(); ++c_iter) {
-            cout << "Processing " << c_iter->first << endl;
-            for (int i = 0; i < c_iter->second.size(); i++) {
-                draw_filters_on_image(filters,"filter-on-img", c_iter->second[i]);
-            }
-        }
-    }
-
-protected:
+  protected:
     // extract features from an image, which in this case just involves resampling and 
     // rearranging into a vector of pixel data.
 
+    void write_feature(ostream& s, int c, const Image& feature_values) {
+        s << c << " ";
+        for (int k = 0; k < feature_values.width(); ++k) {
+            s << k + 1 << ":" << feature_values(k, 0) << " ";
+        }
+        s << "\n";
+    }
     CImg<double> extract_features(const string &filename) {
         //scale,rotate and create integral_images
         Image img(filename.c_str());
@@ -424,7 +356,76 @@ protected:
         }
         return feature_values;
     }
+    void load_classnames()
+    {
+        ifstream names("class-names");
+        if(!names.is_open())
+        {
+            cerr<"Could not open class name file!\n";
+            return;
+        }
+        while(true)
+        {
+            string s;
+            names>>s;
+            if(s=="END")
+                break;
+            class_names.push_back(s);
+        }
+        names.close();
+    }
+    
+    void test(const Dataset &filenames)
+    {
+        create_filters();
+        for (Dataset::const_iterator c_iter = filenames.begin(); c_iter != filenames.end(); ++c_iter) {
+            cout << "Processing " << c_iter->first << endl;
+            for (int i = 0; i < c_iter->second.size(); i++) {
+                draw_filters_on_image(filters,"filter-on-img", c_iter->second[i]);
+            }
+        }
+    }
+    void load_filter(Filter& f, istream& file) {
+        file >> f.width;
+        file >> f.height;
+        file >> f.positive;
+        file >> f.x;
+        file >> f.y;
+    }
 
+    void save_filter(const Filter& f, ostream& file) {
+        file << f.width << " ";
+        file << f.height << " ";
+        file << f.positive << " ";
+        file << f.x << " ";
+        file << f.y << " ";
+    }
+
+    void save_filters() {
+        cout<<"saving filters...";
+        ofstream file("generated-filters.txt");
+
+        for (int i = 0; i < filters.size(); ++i) {
+            const pair<Filter, Position>& f = filters[i];
+            save_filter(f.first, file);
+
+            file << f.second << " ";
+            file << f.first.rectangles.size() << " ";
+
+            for (int j = 0; j < f.first.rectangles.size(); ++j) {
+                const Filter& r = f.first.rectangles[j];
+                save_filter(r, file);
+            }
+            if (i == filters.size() - 1)
+                file << -100;
+            else
+                file << -10;
+            file << "\n";
+        }
+
+        file.close();
+        cout<<"done.\n";
+    }
     void create_filters() {
         cout << "creating filters....\n";
         int filter_count = 0;
