@@ -48,6 +48,7 @@ typedef map<string, vector<string> > Dataset;
 #include <NearestNeighbor.h>
 #include <EigenClassifier.h>
 
+#include <SVM.h>
 
 // Figure out a list of files in a given directory.
 //
@@ -69,7 +70,6 @@ vector<string> files_in_directory(const string &directory, bool prepend_director
 
 int main(int argc, char **argv)
 {
-
   try {
     if(argc < 3)
       throw string("Insufficent number of arguments");
@@ -107,6 +107,52 @@ int main(int argc, char **argv)
     cerr << "Error: " << err << endl;
   }
 
+
+    try
+    {
+        if(argc < 3)
+            throw string("Insufficent number of arguments");
+        
+        string mode = argv[1];
+        string algo = argv[2];
+        
+        // Scan through the "train" or "test" directory (depending on the
+        //  mode) and builds a data structure of the image filenames for each class.
+        Dataset filenames;
+        vector<string> class_list = files_in_directory(mode);
+        for(vector<string>::const_iterator c = class_list.begin(); c != class_list.end(); ++c)
+            filenames[*c] = files_in_directory(mode + "/" + *c, true);
+        
+        // set up the classifier based on the requested algo
+        Classifier *classifier=0;
+        
+        if(algo == "nn")
+            classifier = new NearestNeighbor(class_list);
+        else if(algo == "svm")
+            classifier = new SVM(class_list);
+        else if(algo == "haar")
+            classifier = new Haar(class_list);
+        else
+            throw std::string("unknown classifier " + algo);
+        
+        // now train or test!
+        if(mode == "train")
+        {
+            classifier->train(filenames);
+            system("./svm_multiclass_learn -c 1 train_svm.data train_model");
+        }
+        else if(mode == "test")
+        {
+            classifier->test(filenames);
+            system("./svm_multiclass_classify test_svm.data train_model predictions");
+        }
+        else
+            throw std::string("unknown mode!");
+    }
+    catch(const string &err) 
+    {
+        cerr << "Error: " << err << endl;
+    }
 }
 
 
