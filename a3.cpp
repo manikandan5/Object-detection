@@ -18,7 +18,7 @@
 // See assignment handout for command line and project specifications.
 //
 #include "CImg.h"
-#include <Haar.h>
+
 #include <ctime>
 #include <iostream>
 #include <iomanip>
@@ -47,7 +47,7 @@ typedef map<string, vector<string> > Dataset;
 #include <Classifier.h>
 #include <NearestNeighbor.h>
 #include <EigenClassifier.h>
-
+#include <Haar.h>
 #include <SVM.h>
 
 // Figure out a list of files in a given directory.
