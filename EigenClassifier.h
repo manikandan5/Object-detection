@@ -153,7 +153,7 @@ public:
     // Should be using an SVM here
     for(int c=0; c < class_list.size(); c++) {
       CImg<double> U = models[class_list[c]];
-      CImg<double> omega = U.get_transpose() 1* phi;
+      CImg<double> omega = U.get_transpose() * phi;
       // Omega should be a huge vector with weights for each image
       // If euclidean weight for any weight is lower than threshold then things work
       cout << "Size of omega matrix is " << omega._width << "-" << omega._height << "\n";
