@@ -15,12 +15,11 @@
 #define HAAR_H
 
 #include<map>
-#include<Classifier.h>
 #include<vector>
 #include<string>
 #include<iostream>
 #include<CImg.h>
-#include <Vision_3/Utility.h>
+#include <Utility.h>
 #include<ctime>
 #include<cmath>
 #include <fstream>
