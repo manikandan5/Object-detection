@@ -48,6 +48,7 @@ typedef map<string, vector<string> > Dataset;
 #include <NearestNeighbor.h>
 #include <EigenClassifier.h>
 
+#include <SVM.h>
 
 // Figure out a list of files in a given directory.
 //
@@ -69,7 +70,6 @@ vector<string> files_in_directory(const string &directory, bool prepend_director
 
 int main(int argc, char **argv)
 {
-
   try {
     if(argc < 3)
       throw string("Insufficent number of arguments");
@@ -90,6 +90,8 @@ int main(int argc, char **argv)
       classifier = new NearestNeighbor(class_list);
     else if(algo == "haar")
       classifier = new Haar(class_list);
+    else if(algo == "svm")
+            classifier = new SVM(class_list);
     else if(algo == "ei")
       classifier = new EigenClassifier(class_list);
     else
@@ -106,7 +108,6 @@ int main(int argc, char **argv)
   catch(const string &err) {
     cerr << "Error: " << err << endl;
   }
-
 }
 
 

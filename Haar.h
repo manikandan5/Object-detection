@@ -166,8 +166,7 @@ public:
 class Haar : public Classifier {
 public:
 
-    Haar(const vector<string> &_class_list) : Classifier(_class_list) {
-        f();
+    Haar(const vector<string> &_class_list) : Classifier(_class_list) {        
     }
 
     ~Haar() {
@@ -179,77 +178,50 @@ public:
 
     virtual void train(const Dataset &filenames) {
         srand(time(NULL));
-
+        
         create_filters();
         save_filters();
 
         ofstream m("vj-train-features");
+        ofstream names("class-names");
         int c = 1;
         for (Dataset::const_iterator c_iter = filenames.begin(); c_iter != filenames.end(); ++c_iter) {
             cout << "Processing " << c_iter->first << endl;
+            names<<c_iter->first<<endl;
             for (int i = 0; i < c_iter->second.size(); i++) {
                 write_feature(m, c, extract_features(c_iter->second[i]));
             }
             c++;
         }
         m.close();
+        names<<"END";
+        names.close();
+        
+        cout<<"learning..";
+        system("./svm_multiclass_learn -c .0000001 vj-train-features vj-model ");
     }
 
-    void write_feature(ostream& s, int c, const Image& feature_values) {
-        s << c << " ";
-        for (int k = 0; k < feature_values.width(); ++k) {
-            s << k + 1 << ":" << feature_values(k, 0) << " ";
-        }
-        s << "\n";
-    }
+    
 
     virtual string classify(const string &filename) {
         cerr<<"total loaded filters:"<<filters.size()<<endl;
         ofstream test("test-feature");
         write_feature(test, 1, extract_features(filename));
         test.close();
-        system("./svm_multiclass_classify test-feature vj-train-model2 vj_prediction");
+        system("./svm_multiclass_classify test-feature vj-model vj_prediction");
         ifstream p("vj_prediction");
         int prediction = -1;
         p>>prediction;
-        cout << "predicted class: " << prediction << ":" << class_list[prediction - 1] << endl;
-        //svm_multiclass_classify example4/test.dat example4/model example4/predictions
+        cout << "predicted class: " << prediction << ":" << class_names[prediction - 1] << endl<<endl;
+        
 
-        return class_list[prediction - 1];
+        return class_names[prediction - 1];
     }
     
-    void f()
-    {
-        class_list[0]="bagel";
-        class_list[1]="bread";
-        class_list[2]="brownie";
-        class_list[3]="chickennugget";
-        class_list[4]="churro";
-        class_list[5]="croissant";
-        class_list[6]="frenchfries";
-        class_list[7]="hamburger";
-        class_list[8]="hotdog";
-        class_list[9]="jambalaya";
-        class_list[10]="kungpaochicken";
-        class_list[11]="lasagna";
-        class_list[12]="muffin";
-        class_list[13]="paella";
-        class_list[14]="pizza";
-        class_list[15]="popcorn";
-        class_list[16]="pudding";
-        class_list[17]="salad";
-        class_list[18]="salmon";
-        class_list[19]="scone";
-        class_list[20]="spaghetti";
-        class_list[21]="sushi";
-        class_list[22]="taco";
-        class_list[23]="tiramisu";
-        class_list[24]="waffle";
-        
-    }
+   
 
     virtual void load_model() {
-        
+        load_classnames();
         ifstream file("generated-filters.txt");
         while (true) {
             Filter f(0, 0);
@@ -279,6 +251,140 @@ public:
         }
     }
 
+    
+  protected:
+    // extract features from an image, which in this case just involves resampling and 
+    // rearranging into a vector of pixel data.
+
+    void write_feature(ostream& s, int c, const Image& feature_values) {
+        s << c << " ";
+        for (int k = 0; k < feature_values.width(); ++k) {
+            s << k + 1 << ":" << feature_values(k, 0) << " ";
+        }
+        s << "\n";
+    }
+    CImg<double> extract_features(const string &filename) {
+        //scale,rotate and create integral_images
+        Image img(filename.c_str());
+        img = img.get_RGBtoHSI();
+        //scale(img);		//remove??
+
+        vector<Image> images;
+        for(int i=0; i<2; ++i)
+        {
+            for(int j=0; j<3; ++j)
+                images.push_back(img.get_channel(j));
+        }
+        
+        for(int j=3; j<6; j++)
+            images[j] = images[j].rotate(90, 2, 0);
+        for(int i=0; i<6;++i)
+        {
+            images[i]=images[i].resize(sampled_image_size, sampled_image_size);
+            normalize(images[i], images[i].mean(), images[i].variance());
+        }
+        
+        //Image rotated_img = img;
+
+//        img = img.resize(sampled_image_size, sampled_image_size);
+//
+//        rotated_img = rotated_img.rotate(90, 2, 0).resize(sampled_image_size, sampled_image_size);
+//        normalize(img, img.mean(), img.variance());
+//        normalize(rotated_img, rotated_img.mean(), rotated_img.variance());
+
+        Image f1;
+        for(int i=0; i<6; ++i)
+        {
+            f1.append(apply_filters(get_integral_image(images[i])));
+        }
+//        const Image& f2 = apply_filters(get_integral_image(img));
+//
+//        f1.append(f2);
+
+        f1 = f1.unroll('x');
+		unit_normalize(f1);
+		return f1;
+    }
+
+    Image apply_filters(const Image& integral_img) {
+        Image feature_values(1, filters.size());
+        for (int i = 0; i < filters.size(); ++i) {
+            const Filter& f = filters[i].first;
+            const Position& p = filters[i].second;
+            int x = 0, y = 0;
+            switch (p) {
+                case CENTER:
+                    x = (integral_img.width() - f.width) / 2;
+                    y = (integral_img.height() - f.height) / 2;
+                    break;
+                case LEFT:
+                    x = 0;
+                    y = (integral_img.height() - f.height) / 2;
+                    break;
+                case RIGHT:
+                    x = integral_img.width() - f.width;
+                    y = 0;
+                    break;
+                case TOP:
+                    x = (integral_img.width() - f.width) / 2;
+                    y = 0;
+                    break;
+                case BOTTOM:
+                    x = 0;
+                    y = integral_img.height() - f.height;
+                    break;
+                case RANDOM:
+                    x = f.x;
+                    y = f.y;
+					cout<<"applying random filter. x:"<<x<<",y:"<<y<<endl;
+                    break;
+            }
+
+            double sum = 0;
+            for (int j = 0; j < f.rectangles.size(); ++j) {
+                const Filter& r = f.rectangles[j]; //cout<<"r.x:"<<r.x<<"\tr.y:"<< r.y<<endl;
+                double s = rectangle_sum(integral_img, make_pair(x + r.x, y + r.y),
+                        make_pair(r.x + r.width - 1, r.y + r.height - 1));
+                sum += s; // cout<<"s:"<<s<<endl;
+            }
+            //cout<<"sum:"<<sum<<"\ttotal:"<<rectangle_sum(integral_img, make_pair(f.x, f.y), 
+            //		make_pair(f.x + f.width-1, f.y + f.height-1))<<endl;
+            const int sign = f.positive ? 1 : -1;
+            feature_values(0, i) = sign *
+                    rectangle_sum(integral_img, make_pair(f.x, f.y), make_pair(f.x + f.width - 1, f.y + f.height - 1)) -
+                    2 * sign * sum;
+        }
+        return feature_values;
+    }
+    void load_classnames()
+    {
+        ifstream names("class-names");
+        if(!names.is_open())
+        {
+            cerr<"Could not open class name file!\n";
+            return;
+        }
+        while(true)
+        {
+            string s;
+            names>>s;
+            if(s=="END")
+                break;
+            class_names.push_back(s);
+        }
+        names.close();
+    }
+    
+    void test(const Dataset &filenames)
+    {
+        create_filters();
+        for (Dataset::const_iterator c_iter = filenames.begin(); c_iter != filenames.end(); ++c_iter) {
+            cout << "Processing " << c_iter->first << endl;
+            for (int i = 0; i < c_iter->second.size(); i++) {
+                draw_filters_on_image(filters,"filter-on-img", c_iter->second[i]);
+            }
+        }
+    }
     void load_filter(Filter& f, istream& file) {
         file >> f.width;
         file >> f.height;
@@ -320,84 +426,9 @@ public:
         file.close();
         cout<<"done.\n";
     }
-
-protected:
-    // extract features from an image, which in this case just involves resampling and 
-    // rearranging into a vector of pixel data.
-
-    CImg<double> extract_features(const string &filename) {
-        //scale,rotate and create integral_images
-        Image img(filename.c_str());
-        img = img.get_RGBtoHSI().get_channel(2);
-        //scale(img);		//remove??
-
-        Image rotated_img = img;
-
-        img = img.resize(sampled_image_size, sampled_image_size);
-
-        rotated_img = rotated_img.rotate(90, 2, 0).resize(sampled_image_size, sampled_image_size);
-        normalize(img, img.mean(), img.variance());
-        normalize(rotated_img, rotated_img.mean(), rotated_img.variance());
-
-        Image f1 = apply_filters(get_integral_image(img));
-
-        const Image& f2 = apply_filters(get_integral_image(img));
-
-        f1.append(f2);
-
-        return f1.unroll('x');
-    }
-
-    Image apply_filters(const Image& integral_img) {
-        Image feature_values(1, filters.size());
-        for (int i = 0; i < filters.size(); ++i) {
-            const Filter& f = filters[i].first;
-            const Position& p = filters[i].second;
-            int x = 0, y = 0;
-            switch (p) {
-                case CENTER:
-                    x = (integral_img.width() - f.width) / 2;
-                    y = (integral_img.height() - f.height) / 2;
-                    break;
-                case LEFT:
-                    x = 0;
-                    y = (integral_img.height() - f.height) / 2;
-                    break;
-                case RIGHT:
-                    x = integral_img.width() - f.width;
-                    y = 0;
-                    break;
-                case TOP:
-                    x = (integral_img.width() - f.width) / 2;
-                    y = 0;
-                    break;
-                case BOTTOM:
-                    x = 0;
-                    y = integral_img.height() - f.height;
-                    break;
-            }
-
-            double sum = 0;
-            for (int j = 0; j < f.rectangles.size(); ++j) {
-                const Filter& r = f.rectangles[j]; //cout<<"r.x:"<<r.x<<"\tr.y:"<< r.y<<endl;
-                double s = rectangle_sum(integral_img, make_pair(x + r.x, y + r.y),
-                        make_pair(r.x + r.width - 1, r.y + r.height - 1));
-                sum += s; // cout<<"s:"<<s<<endl;
-            }
-            //cout<<"sum:"<<sum<<"\ttotal:"<<rectangle_sum(integral_img, make_pair(f.x, f.y), 
-            //		make_pair(f.x + f.width-1, f.y + f.height-1))<<endl;
-            const int sign = f.positive ? 1 : -1;
-            feature_values(0, i) = sign *
-                    rectangle_sum(integral_img, make_pair(f.x, f.y), make_pair(f.x + f.width - 1, f.y + f.height - 1)) -
-                    2 * sign * sum;
-        }
-        return feature_values;
-    }
-
     void create_filters() {
         cout << "creating filters....\n";
         int filter_count = 0;
-
         add_bagle_filters(sampled_image_size, filters);
         cout << "bagel:" << filters.size() - filter_count << endl;
         filter_count = filters.size();
@@ -450,7 +481,10 @@ protected:
 
         add_random_filters(sampled_image_size, filters);
         cout << "random:" << filters.size() - filter_count << endl;
+        filter_count = filters.size();
         //draw_filters(filters, "filters/random");
+        //add_random_filters(sampled_image_size, filters, true);
+        //cout << "all random:" << filters.size() - filter_count << endl;
 
         cout << "total number of filters:" << filters.size() << endl << endl;
 
@@ -749,8 +783,87 @@ protected:
         }
     }
 
-    void add_pudding_filters(const int img_size, vector<pair<Filter, Position> >& filters) {
-        //filters should be large white rectangle/circle inside black box (similar to popcorn filters)
+    void add_random_filters(const int img_size, vector<pair<Filter, Position> >& filters, const bool r) 
+    {        
+        for(int i=0; i<10; ++i)
+        {
+            const int s1 = static_cast<int> ((float) img_size * (float) (1.0 - i * 5.0 / 100.0));
+            
+            // 2 box filters
+            {
+                //Square
+                filters.push_back(make_pair(Filter::create_filter(s1, s1, POSITIVE, rand()% max(1,img_size-s1), rand()% max(1,img_size-s1)).
+                    add_rectangle(s1/2, s1, NEGATIVE, RIGHT, NO_OFFSET),RANDOM)); //horizontal w:b
+                filters.push_back(make_pair(Filter::create_filter(s1, s1, NEGATIVE,rand()% max(1,img_size-s1), rand()% max(1,img_size-s1)).
+                    add_rectangle(s1/2, s1, POSITIVE, LEFT, NO_OFFSET),RANDOM)); //horizontal b:w
+                filters.push_back(make_pair(Filter::create_filter(s1, s1, POSITIVE,rand()% max(1,img_size-s1), rand()% max(1,img_size-s1)).
+                    add_rectangle(s1, s1/2, NEGATIVE, BOTTOM, NO_OFFSET),RANDOM)); //vertical w:b
+                filters.push_back(make_pair(Filter::create_filter(s1, s1, NEGATIVE,rand()% max(1,img_size-s1), rand()% max(1,img_size-s1)).
+                    add_rectangle(s1, s1/2, POSITIVE, TOP, NO_OFFSET),RANDOM)); //vertical b:w
+                filters.push_back(make_pair(Filter::create_filter(s1, s1, NEGATIVE,rand()% max(1,img_size-s1), rand()% max(1,img_size-s1)).
+                    add_rectangle(s1, s1/2, POSITIVE, CENTER, NO_OFFSET),RANDOM)); 
+                
+                //Rectangular (horizontal wide)
+                filters.push_back(make_pair(Filter::create_filter(s1, s1/2, POSITIVE, rand()% max(1,img_size-s1), rand()% max(1,img_size-s1/2)).
+                    add_rectangle(s1/2, s1/2, NEGATIVE, RIGHT, NO_OFFSET),RANDOM)); //horizontal w:b
+                filters.push_back(make_pair(Filter::create_filter(s1, s1/2, NEGATIVE, rand()% max(1,img_size-s1), rand()% max(1,img_size-s1/2)).
+                    add_rectangle(s1/2, s1/2, POSITIVE, LEFT, NO_OFFSET),RANDOM)); //horizontal b:w
+                filters.push_back(make_pair(Filter::create_filter(s1, s1/2, NEGATIVE, rand()% max(1,img_size-s1), rand()% max(1,img_size-s1/2)).
+                    add_rectangle(s1/2, s1/2, POSITIVE, CENTER, NO_OFFSET),RANDOM));
+                
+                //Rectangular (vertical wide)
+                filters.push_back(make_pair(Filter::create_filter(s1/2, s1, POSITIVE, rand()% max(1,img_size-s1/2), rand()% max(1,img_size-s1)).
+                    add_rectangle(s1/2, s1/2, NEGATIVE, BOTTOM, NO_OFFSET),RANDOM)); //vertical w:b
+                filters.push_back(make_pair(Filter::create_filter(s1/2, s1, NEGATIVE, rand()% max(1,img_size-s1/2), rand()% max(1,img_size-s1)).
+                    add_rectangle(s1/2, s1/2, POSITIVE, TOP, NO_OFFSET),RANDOM)); //vertical b:w
+                filters.push_back(make_pair(Filter::create_filter(s1/2, s1, NEGATIVE, rand()% max(1,img_size-s1/2), rand()% max(1,img_size-s1)).
+                    add_rectangle(s1/2, s1/2, POSITIVE, CENTER, NO_OFFSET),RANDOM));
+            }
+            
+            // 3 box filters
+            {
+                //Square
+                filters.push_back(make_pair(Filter::create_filter(s1, s1, POSITIVE, rand()% max(1,img_size-s1), rand()% max(1,img_size-s1)).
+                    add_rectangle(s1/3, s1, NEGATIVE, CENTER, NO_OFFSET),RANDOM)); 
+                filters.push_back(make_pair(Filter::create_filter(s1, s1, NEGATIVE, rand()% max(1,img_size-s1), rand()% max(1,img_size-s1)).
+                    add_rectangle(s1/3, s1, POSITIVE, CENTER, NO_OFFSET),RANDOM)); 
+                filters.push_back(make_pair(Filter::create_filter(s1, s1, POSITIVE, rand()% max(1,img_size-s1), rand()% max(1,img_size-s1)).
+                    add_rectangle(s1, s1/3, NEGATIVE, CENTER, NO_OFFSET),RANDOM)); 
+                filters.push_back(make_pair(Filter::create_filter(s1, s1, NEGATIVE, rand()% max(1,img_size-s1), rand()% max(1,img_size-s1)).
+                    add_rectangle(s1, s1/3, POSITIVE, CENTER, NO_OFFSET),RANDOM)); 
+                
+                //Rectangular (horizontal wide)
+                filters.push_back(make_pair(Filter::create_filter(s1, s1/2, POSITIVE, rand()% max(1,img_size-s1), rand()% max(1,img_size-s1/2)).
+                    add_rectangle(s1/3, s1/2, NEGATIVE, CENTER, NO_OFFSET),RANDOM)); 
+                filters.push_back(make_pair(Filter::create_filter(s1, s1/2, NEGATIVE, rand()% max(1,img_size-s1), rand()% max(1,img_size-s1/2)).
+                    add_rectangle(s1/3, s1/2, POSITIVE, CENTER, NO_OFFSET),RANDOM)); 
+                //Rectangular (vertical wide)
+                filters.push_back(make_pair(Filter::create_filter(s1/2, s1, POSITIVE, rand()% max(1,img_size-s1/2), rand()% max(1,img_size-s1)).
+                    add_rectangle(s1/2, s1/3, NEGATIVE, CENTER, NO_OFFSET),RANDOM)); //vertical w:b
+                filters.push_back(make_pair(Filter::create_filter(s1/2, s1, NEGATIVE, rand()% max(1,img_size-s1/2), rand()% max(1,img_size-s1)).
+                    add_rectangle(s1/2, s1/3, POSITIVE, CENTER, NO_OFFSET),RANDOM));
+            }
+            
+            //4 box filters
+            {
+                //square
+                filters.push_back(make_pair(Filter::create_filter(s1, s1, POSITIVE, rand()% max(1,img_size-s1), rand()% max(1,img_size-s1)).
+                    add_rectangle(s1/2, s1/2, NEGATIVE, TOP_LEFT, NO_OFFSET).
+                    add_rectangle(s1/2, s1/2, NEGATIVE, BOTTOM_RIGHT, NO_OFFSET),RANDOM)); 
+                filters.push_back(make_pair(Filter::create_filter(s1, s1, NEGATIVE, rand()% max(1,img_size-s1), rand()% max(1,img_size-s1)).
+                    add_rectangle(s1/2, s1/2, POSITIVE, TOP_LEFT, NO_OFFSET).
+                    add_rectangle(s1/2, s1/2, POSITIVE, BOTTOM_RIGHT, NO_OFFSET),RANDOM)); 
+      
+                //horizontal
+                filters.push_back(make_pair(Filter::create_filter(s1, s1/2, POSITIVE, rand()% max(1,img_size-s1), rand()% max(1,img_size-s1/2)).
+                    add_rectangle(s1/4, s1/2, NEGATIVE, LEFT, USE_OFFSET).
+                    add_rectangle(s1/4, s1/2, NEGATIVE, RIGHT, USE_OFFSET),RANDOM)); 
+                //vertical
+                filters.push_back(make_pair(Filter::create_filter(s1/2, s1, POSITIVE, rand()% max(1,img_size-s1), rand()% max(1,img_size-s1/2)).
+                    add_rectangle(s1/2, s1/4, NEGATIVE, TOP, USE_OFFSET).
+                    add_rectangle(s1/2, s1/4, NEGATIVE, BOTTOM, USE_OFFSET),RANDOM)); 
+            }
+        }
     }
 
     void normalize(Image& img, const double mean, const double variance) {
@@ -810,6 +923,41 @@ protected:
             Utility::NumberToString<int>(x_offset)  +"_"+
             Utility::NumberToString<int>(y_offset)  +"_"+".jpg";*/
             outer_rect.save(name.c_str());
+        }
+        cout << "a:" << a << "\tb:" << b << endl;
+    }
+
+    void draw_filters_on_image(
+        const vector<pair<Filter, Position> >& filters,
+        const string& directory,
+        const string& img_name) {
+        Image img(img_name.c_str());
+        int a = 0, b = 0;
+        Utility::CreateDirectory(directory);
+        for (int i = 0; i < filters.size(); ++i) {
+            const Filter& f = filters[i].first;
+      
+            for (int j = 0; j < f.rectangles.size(); ++j) {
+                const Filter& r = f.rectangles[j];
+                if (r.width == 0 || r.height == 0) {
+                    cout << "zero rectangle\n";
+                    continue;
+                }
+                CImg<int> inner_rect(r.width, r.height, 1, 1, r.positive ? 255 : 0);
+                if (r.x < 0 || r.y < 0) {
+                    cout << "bound error:" << r.x << "," << r.y << endl;
+                    a++;
+                    continue;
+                }
+                if (r.x + r.width > f.width || r.y + r.height > f.height) {
+                    cout << "overflow:" << r.x << "," << r.width << "," << r.y << "," << r.height << ", f:" << f.width << "," << f.height << endl;
+                    b++;
+                    continue;
+                }
+                img.draw_image(r.x, r.y, 0, 0, inner_rect);
+            }
+            string name = directory + "/" + Utility::NumberToString<int>(i) + ".jpg";
+            img.save(name.c_str());
         }
         cout << "a:" << a << "\tb:" << b << endl;
     }
@@ -907,13 +1055,28 @@ protected:
         filters.push_back(make_pair(f3, CENTER));
         feature = apply_filters(img);
         print(feature, "features");
-
-
     }
+	
+	void unit_normalize(Image& img)
+	{
+//		cout<<"normalizing to unit vector\n";
+		double sum = 0;
+		for(int i=0; i< img.width(); ++i)
+		{
+			sum += pow(img(i,0),2);
+		}
+		sum = sqrt(sum);
+		//cout<<"sum:"<<sum<<endl;
+		for(int i=0; i< img.width(); ++i)
+		{
+			img(i,0) /= sum;
+		}
+	}
 
     static const int sampled_image_size = 50; // subsampled image resolution
     map<string, CImg<double> > models; // trained models
     vector<pair<Filter, Position> > filters;
+    vector<string> class_names;
 };
 
 
