@@ -99,7 +99,7 @@ protected:
     // In grayscale
     CImg<double> img(filename.c_str());
     img._spectrum = 1;
-    return img.resize(size,size).normalize().unroll('x');
+    return img.resize(size,size).unroll('x');
   }
 
   static const int size=40;  // subsampled image resolution
