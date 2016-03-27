@@ -29,10 +29,12 @@
 #include <dirent.h>
 #include <map>
 #include <numeric>
+#include <opencv2/core.hpp>
 
 //Use the cimg namespace to access the functions easily
 using namespace cimg_library;
 using namespace std;
+using namespace cv;
 
 // Dataset data structure, set up so that e.g. dataset["bagel"][3] is
 // filename of 4th bagel image in the dataset
@@ -91,12 +93,12 @@ int main(int argc, char **argv)
         if(mode == "train")
         {
             classifier->train(filenames);
-            system("./svm_multiclass_learn -c 1 train_svm.data train_model");
+            system("./svm_multiclass_learn -c 1 train.data train_model");
         }
         else if(mode == "test")
         {
             classifier->test(filenames);
-            system("./svm_multiclass_classify test_svm.data train_model predictions");
+            system("./svm_multiclass_classify test.data train_model predictions");
         }
         else
             throw std::string("unknown mode!");
