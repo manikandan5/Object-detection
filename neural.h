@@ -45,6 +45,7 @@ public:
       n--;
       i++;
     }
+    fout << "\n";
   }
   int get_index(string f,vector<string> class_list) {
     for (int i = 0; i < class_list.size();i++) {
