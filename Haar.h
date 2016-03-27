@@ -202,8 +202,7 @@ public:
 
     
 
-    virtual string classify(const string &filename) {
-        cerr<<"total loaded filters:"<<filters.size()<<endl;
+    virtual string classify(const string &filename) {        
         ofstream test("test-feature");
         write_feature(test, 1, extract_features(filename));
         test.close();
