@@ -20,7 +20,7 @@
 #include<string>
 #include<iostream>
 #include<CImg.h>
-#include <Vision_3/Utility.h>
+#include <Utility.h>
 #include<ctime>
 #include<cmath>
 #include <fstream>
