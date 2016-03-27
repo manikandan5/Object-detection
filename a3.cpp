@@ -48,6 +48,7 @@ typedef map<string, vector<string> > Dataset;
 #include <EigenClassifier.h>
 #include <Haar.h>
 #include <SVM.h>
+#include <neural.h>
 #include <svm2.h>
 
 // Figure out a list of files in a given directory.
@@ -96,6 +97,8 @@ int main(int argc, char **argv)
       classifier = new SVM2(class_list);
     else if(algo == "ei")
       classifier = new EigenClassifier(class_list);
+    else if(algo == "nu")
+      classifier = new Neural(class_list);
     else
       throw std::string("unknown classifier " + algo);
 
