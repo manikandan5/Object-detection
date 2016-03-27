@@ -98,7 +98,7 @@ int main(int argc, char **argv)
             classifier = new NearestNeighbor(class_list);
         else if(algo == "haar")
             classifier = new Haar(class_list);
-        else if(algo == "svm")
+        else if(algo == "baseline")
             classifier = new SVM(class_list);
         else if(algo == "svm2")
             classifier = new SVM2(class_list);
@@ -143,10 +143,12 @@ int main(int argc, char **argv)
                 {
                     classifier->test(filenames);
                     system("./svm_multiclass_classify bow-test-features bow-model bow-predictions");
+                    system("python score.py bow-predictions bow-test-features");
                 }
                 else
                 {
                     system("./svm_multiclass_classify bow-test-features bow-model bow-predictions");
+                    system("python score.py bow-predictions bow-test-features");
                 }
                 
             }
