@@ -21,6 +21,7 @@ public:
       for(int i=0; i<c_iter->second.size(); ++i) {
       	string fname = c_iter->second[i];
       	get_file(fname).save("overtmp.jpg");
+	cout << " Processing file " << fname << endl;
       	string out = run_system(overfeat+" -f overtmp.jpg");
       	remove("overtmp.jpg");
 	build_svm_n(out,fout,classValue);
