@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <algorithm>
 #include <string>
+#include <fstream>
 #include <vector>
 #include <sys/types.h>
 #include <dirent.h>
@@ -18,6 +19,8 @@ class EigenClassifier : public Classifier {
 public:
   EigenClassifier(const vector<string> &_class_list) : Classifier(_class_list) {}
   virtual void train(const Dataset &filenames) {
+    int classvalue = 1;
+    std::ofstream fout("train_eigen_svm.data");
     for(Dataset::const_iterator c_iter=filenames.begin(); c_iter != filenames.end(); ++c_iter) {
       double M = c_iter->second.size();
       CImg<double> A(M,size*size,1);
@@ -39,13 +42,13 @@ public:
       for(int i=0; i< M; i++) {
 	CImg<double> e = extract_features(c_iter->second[i].c_str());
 	e -= total;
-	double max=-1000000 , min=1000000;
-	cimg_forXY(e,x,y) {
-	  double C = e(x,y);
-	  if (C > max) max = C;
-	  if (C < min) min = C;
-	}
-	cout<<"Average image - max "<<max << " _ min "<< min <<"\n" ;
+	// double max=-1000000 , min=1000000;
+	// cimg_forXY(e,x,y) {
+	//   double C = e(x,y);
+	//   if (C > max) max = C;
+	//   if (C < min) min = C;
+	// }
+	// cout<<"Average image - max "<<max << " _ min "<< min <<"\n" ;
 	// TEST - Show the face after removing average
 	ostringstream convert;   // stream used for the conversion
 	convert << i;      // insert the textual representation of 'Number' in the characters in the stream
@@ -69,18 +72,20 @@ public:
       cout<<"Eigen Value size " << eig_values._width << " : " << eig_values._height << "\n";
 
       CImg<double> eigenValuesPowerNHalf = CImg<double>(eig_values,false);
-      cimg_rof(eigenValuesPowerNHalf,ptrd,double) *ptrd = 1/(std::sqrt((double)*ptrd));
-
-      cout << "Eigen values ";
-      cimg_forY(eig_values,y)
-	cout << eig_values(0,y) << ",";
-      cout << endl;
-      cout << "Eigen Vectors ";
-      cimg_forY(eig_vector,y) {
-	cimg_forX(eig_vector,x)
-	  cout << eig_vector(x,y) << " ";
-	cout << endl;
+      cimg_forXY(eigenValuesPowerNHalf,x,y) {
+	if (eigenValuesPowerNHalf(x,y) != 0)
+	  eigenValuesPowerNHalf(x,y) = 1/sqrt(eigenValuesPowerNHalf(x,y));
       }
+      // cout << "Eigen values ";
+      // cimg_forY(eig_values,y)
+      // 	cout << eig_values(0,y) << ",";
+      // cout << endl;
+      // cout << "Eigen Vectors ";
+      // cimg_forY(eig_vector,y) {
+      // 	cimg_forX(eig_vector,x)
+      // 	  cout << eig_vector(x,y) << " ";
+      // 	cout << endl;
+      //}
 
       // R = eig_vector.size() - 1;
       unsigned int R = 10;
@@ -90,22 +95,46 @@ public:
 	// Could be row transpose or the column - Need to understand it
 	// CImg<double> vi = eig_vector.get_row(i).transpose();
 	CImg<double> ui = A * vi;
-
 	ui /= eigenValuesPowerNHalf[i];
 	// Normalize it
 	// ui.normalize(0,255);
 	// FOR TESTING
 	ostringstream convert;   // stream used for the conversion
 	convert << i;      // insert the textual representation of 'Number' in the characters in the stream
-	get_unfolded(ui).save_jpeg(("traintest/nn_model."+ convert.str() + (string)"s." + c_iter->first + ".jpg").c_str());
+	get_unfolded(ui).save_jpeg(("traintest/"+ convert.str() + (string)"s." + c_iter->first + ".jpg").c_str());
 	U.draw_image(0, i, 0, 0, ui);
       }
       // cimg_forXY(eig_values,x,y) {
       // 	cout << "Eigen values - "<< x << ":" << y << " -> " << eig_values(x,y) << "\n";
       // }
-      U.save_jpeg(("nn_model." + c_iter->first + ".jpg").c_str());
+
+      string eigenfname = "model_eigen." + c_iter->first + ".jpg";
+      U.save_jpeg((eigenfname).c_str());
+      build_svm_data(U.transpose(),fout,classvalue);
+      classvalue++;
+    }
+    fout.close();
+    system("./svm_bin/svm_multiclass_learn -c 1 train_eigen_svm.data svm_eigen_train");
+  }
+
+  void build_svm_data(string fname, ofstream &fout,int classValue=1) {
+    CImg<double> feature_vector = extract_features(fname.c_str());
+    build_svm_data(feature_vector,fout,classValue);
+  }
+
+  void build_svm_data(CImg<double> feature_vector, ofstream &fout,int classValue=1) {
+    // int i = 0;
+    feature_vector.normalize(0,255);
+    cimg_forY(feature_vector,y) {
+      fout<<classValue << " ";
+      cimg_forX(feature_vector,x) {
+	fout<<(x+1)<<":"<<feature_vector(x,y)<<" ";
+	// i++;
+      }
+      fout<<"\n";
     }
   }
+
   CImg<double> get_unfolded(CImg<double> i) {
     double k = (int)sqrt(i._height);
     CImg<double> ret(k,k);
@@ -140,57 +169,48 @@ public:
     return e;
   }
 
+  int get_index(string f,vector<string> class_list) {
+    for (int i = 0; i < class_list.size();i++) {
+      size_t found = f.find(class_list[i]);
+      if (found!=std::string::npos)
+	return i;
+    }
+    return 0;
+  }
+
   virtual string classify(const string &filename) {
     CImg<double> test_image = extract_features(filename);
     // Now let get Ut * (Meaned out test_image)
     // phi is meaned out test_image
-    CImg<double> phi = test_image - test_image.mean();
-    cout<< " Test image is "<< filename << "\n";
-    cout<< " Test image after subtracting average is "<< phi.mean() << "\n";
-    double threshold = 0.05;
-    string ret = "";
-    double min_minval = 100;
+    // CImg<double> phi = test_image - test_image.mean();
+    // cout<< " Test image is "<< filename << "\n";
+    // cout<< " Test image after subtracting average is "<< phi.mean() << "\n";
+    // double threshold = 0.05;
+    // string ret = "";
+    // double min_minval = 100;
     // Should be using an SVM here
-    for(int c=0; c < class_list.size(); c++) {
-      CImg<double> U = models[class_list[c]];
-      CImg<double> omega = U.get_transpose() * phi;
-      // Omega should be a huge vector with weights for each image
-      // If euclidean weight for any weight is lower than threshold then things work
-      cout << "Size of omega matrix is " << omega._width << "-" << omega._height << "\n";
-      cout << "Size of Phi matrix is " << phi._width << "-" << phi._height << "\n";
-      cout << "Size of u matrix is " << U._width << "-" << U._height << "\n";
-      double minval;
-      CImg<double> eps= (phi- (U * omega));
-      cimg_forC(eps,C) {
-	minval += C * C;
-      }
-      minval = sqrt(minval);
-      // img_forC(omega,C) {
-      // 	val = sqrt(((double)C - threshold) * ((double)C - threshold));
-      // 	cout << "Value of C in omega " << C << "\n";
-      // 	if (val < minval) {
-      // 	  minval = val;
-      // 	}
-      // }
-      // if (val < minval) {
-      // }
-      cout << "Minval for  "<< class_list[c] << " "<< minval << "\n";
-      // if (minval < threshold) {
-      // 	return class_list[c];
-      // }
-      if (minval <= min_minval && minval > 1/1e10) {
-	ret = class_list[c];
-	min_minval = minval;
-      }
-    }
-    cout<< " Recognized image " << filename << " as " << ret << " with minval "<< min_minval <<"\n";
-    return ret;
+    int i = get_index(filename,class_list);
+    ofstream fout("test_svm_tmp.data");
+    build_svm_data(test_image.transpose(),fout,i+1);
+    fout.close();
+    system("./svm_bin/svm_multiclass_classify test_svm_tmp.data svm_eigen_train classify.tmp");
+    ifstream cl("classify.tmp");
+    string line;
+    getline(cl,line);
+    int num ;
+    stringstream tmp;
+    tmp << line;
+    tmp >> num;
+    cl.close();
+    remove ("test_svm_tmp.data");
+    remove("classify.tmp");
+    return class_list[num-1];
   }
 
   virtual void load_model() {
     // Get all the images from U
-    for(int c=0; c < class_list.size(); c++)
-      models[class_list[c] ] = (CImg<double>(("nn_model." + class_list[c] + ".png").c_str()));
+    // for(int c=0; c < class_list.size(); c++)
+    //   models[class_list[c] ] = (CImg<double>(("nn_model." + class_list[c] + ".png").c_str()));
   }
 protected:
   // extract features from an image, which in this case just involves resampling and
@@ -223,6 +243,6 @@ protected:
     return k;
   }
 
-  static const int size=100;  // subsampled image resolution
+  static const int size=40;  // subsampled image resolution
   map<string, CImg<double> > models; // trained models
 };
