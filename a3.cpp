@@ -18,7 +18,6 @@
 // See assignment handout for command line and project specifications.
 //
 #include "CImg.h"
-#include <Haar.h>
 #include <ctime>
 #include <iostream>
 #include <iomanip>
@@ -49,8 +48,10 @@ typedef map<string, vector<string> > Dataset;
 #include <Classifier.h>
 #include <NearestNeighbor.h>
 #include <EigenClassifier.h>
-
+#include <Haar.h>
 #include <SVM.h>
+#include <neural.h>
+#include <svm2.h>
 
 // Figure out a list of files in a given directory.
 //
@@ -93,9 +94,13 @@ int main(int argc, char **argv)
     else if(algo == "haar")
       classifier = new Haar(class_list);
     else if(algo == "svm")
-            classifier = new SVM(class_list);
+      classifier = new SVM(class_list);
+    else if(algo == "svm2")
+      classifier = new SVM2(class_list);
     else if(algo == "ei")
       classifier = new EigenClassifier(class_list);
+    else if(algo == "nu")
+      classifier = new Neural(class_list);
     else
       throw std::string("unknown classifier " + algo);
 

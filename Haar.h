@@ -15,7 +15,6 @@
 #define HAAR_H
 
 #include<map>
-#include<Classifier.h>
 #include<vector>
 #include<string>
 #include<iostream>
