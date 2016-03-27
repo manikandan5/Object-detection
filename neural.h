@@ -43,6 +43,7 @@ public:
       tmp >> t;
       fout << i << ":"<< t << " ";
       n--;
+      i++;
     }
   }
   int get_index(string f,vector<string> class_list) {
