@@ -30,6 +30,7 @@
 #include <dirent.h>
 #include <map>
 #include <numeric>
+#include <opencv2/core.hpp>
 
 
 typedef CImg<double> Image;
@@ -37,6 +38,7 @@ typedef CImg<double> Image;
 //Use the cimg namespace to access the functions easily
 using namespace cimg_library;
 using namespace std;
+using namespace cv;
 
 // Dataset data structure, set up so that e.g. dataset["bagel"][3] is
 // filename of 4th bagel image in the dataset
@@ -108,6 +110,7 @@ int main(int argc, char **argv)
   catch(const string &err) {
     cerr << "Error: " << err << endl;
   }
+
 }
 
 

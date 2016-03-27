@@ -9,7 +9,7 @@ public:
     // SVM training
     virtual void train(const Dataset &filenames)
     {
-        std::ofstream fout("train_svm.data");
+        std::ofstream fout("train.data");
         build_svm_data(filenames,fout);
         fout.close();
     }
@@ -34,9 +34,7 @@ public:
                 }
                 
                 fout<<"\n";
-                
             }
-            
             classValue++;
         }
     }
@@ -48,7 +46,7 @@ public:
     
     virtual void test(const Dataset &filenames)
     {
-        std::ofstream fout("test_svm.data");
+        std::ofstream fout("test.data");
         cout<<"\nBuilding SVM Test Data\n";
         build_svm_data(filenames, fout, false);
         fout.close();
