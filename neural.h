@@ -109,6 +109,6 @@ protected:
     return img.resize(size,size).unroll('x');
   }
 
-  static const int size=40;  // subsampled image resolution
+  static const int size=231;  // subsampled image resolution
   map<string, CImg<double> > models; // trained models
 };
