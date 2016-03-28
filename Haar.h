@@ -235,8 +235,8 @@ public:
                 Filter r(0, 0);
                 load_filter(r, file);
                 if (r.width == 0 || r.height == 0) {
-                    cout << "zero rectangle\n";
-                    z++;
+                    //cout << "zero rectangle\n";
+                    z++;continue;
                 }
                 f.rectangles.push_back(r);
             }
