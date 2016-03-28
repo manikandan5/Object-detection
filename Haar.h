@@ -202,8 +202,7 @@ public:
 
     
 
-    virtual string classify(const string &filename) {
-        cerr<<"total loaded filters:"<<filters.size()<<endl;
+    virtual string classify(const string &filename) {        
         ofstream test("test-feature");
         write_feature(test, 1, extract_features(filename));
         test.close();
@@ -236,8 +235,8 @@ public:
                 Filter r(0, 0);
                 load_filter(r, file);
                 if (r.width == 0 || r.height == 0) {
-                    cout << "zero rectangle\n";
-                    z++;
+                    //cout << "zero rectangle\n";
+                    z++;continue;
                 }
                 f.rectangles.push_back(r);
             }
@@ -374,16 +373,6 @@ public:
         names.close();
     }
     
-    void test(const Dataset &filenames)
-    {
-        create_filters();
-        for (Dataset::const_iterator c_iter = filenames.begin(); c_iter != filenames.end(); ++c_iter) {
-            cout << "Processing " << c_iter->first << endl;
-            for (int i = 0; i < c_iter->second.size(); i++) {
-                draw_filters_on_image(filters,"filter-on-img", c_iter->second[i]);
-            }
-        }
-    }
     void load_filter(Filter& f, istream& file) {
         file >> f.width;
         file >> f.height;
