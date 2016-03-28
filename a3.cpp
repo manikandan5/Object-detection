@@ -102,9 +102,9 @@ int main(int argc, char **argv)
             classifier = new SVM(class_list);
         else if(algo == "svm2")
             classifier = new SVM2(class_list);
-        else if(algo == "ei")
+        else if(algo == "eigen")
             classifier = new EigenClassifier(class_list);
-        else if(algo == "nu")
+        else if(algo == "deep")
             classifier = new Neural(class_list);
         else if(algo == "bow")
             classifier = new BOW(class_list);
