@@ -18,7 +18,7 @@ public:
             {
                 CImg<float> img(c_iter->second[i].c_str());
                 
-                std::vector<SiftDescriptor> img_sift_descriptors = Sift::compute_sift(img.blur(2.0,true,true).resize_halfXY().resize_halfXY());
+                std::vector<SiftDescriptor> img_sift_descriptors = Sift::compute_sift(img.blur(2.0,true,true).resize_halfXY().resize_halfXY().resize_halfXY());
                 
                 int num_descriptors = 0;
                 num_images++;
@@ -50,7 +50,7 @@ public:
             }
         }
         
-        int k = 5000;
+        int k = 1500;
         
         cout<<"\n Clustering ..\n"<<descriptors.rows<<" descriptors";
         

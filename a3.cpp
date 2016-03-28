@@ -75,7 +75,7 @@ vector<string> files_in_directory(const string &directory, bool prepend_director
 int main(int argc, char **argv)
 {
     try {
-        bool buildData = true;
+        string buildData = "true";
         
         if(argc < 3)
             throw string("Insufficent number of arguments");
@@ -120,7 +120,7 @@ int main(int argc, char **argv)
             }
             else
             {
-                if(buildData)
+                if(buildData=="true")
                 {
                     classifier->train(filenames);
                     system("./svm_multiclass_learn -c 0.1 bow-train-features bow-model ");
@@ -139,7 +139,7 @@ int main(int argc, char **argv)
             }
             else
             {
-                if(buildData)
+                if(buildData=="true")
                 {
                     classifier->test(filenames);
                     system("./svm_multiclass_classify bow-test-features bow-model bow-predictions");
