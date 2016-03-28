@@ -46,7 +46,7 @@ public:
 
     virtual void test(const Dataset &filenames)
     {
-        std::ofstream fout("test.data");
+        std::ofstream fout("svm-test-features");
         cout<<"\nBuilding SVM Test Data\n";
         build_svm_data(filenames, fout, false);
         fout.close();
