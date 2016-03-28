@@ -8,9 +8,10 @@ public:
     // SVM training
     virtual void train(const Dataset &filenames)
     {
-        std::ofstream fout("train.data");
+        std::ofstream fout("svm-train-features");
         build_svm_data(filenames,fout);
         fout.close();
+        system("./svm_multiclass_learn -c 0.1 svm-train-features svm-model");
     }
 
     void build_svm_data(const Dataset &filenames, ofstream &fout, bool isTrain=true)
@@ -49,12 +50,14 @@ public:
         cout<<"\nBuilding SVM Test Data\n";
         build_svm_data(filenames, fout, false);
         fout.close();
+        system("./svm_multiclass_classify svm-test-features svm-model svm-predictions");
+        system("python score.py svm-predictions svm-test-features");
     }
 
     virtual void load_model()
     {
         for(int c=0; c < class_list.size(); c++)
-            models[class_list[c] ] = (CImg<double>(("nn_model." + class_list[c] + ".png").c_str()));
+            models[class_list[c] ] = (CImg<double>(("svm_model." + class_list[c] + ".png").c_str()));
     }
 protected:
     // extract features from an image, which in this case just involves resampling and
