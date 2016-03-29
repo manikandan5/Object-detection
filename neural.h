@@ -26,7 +26,7 @@ public:
 	f = "./n/"+f;
       	get_file(fname).save(f.c_str());
 	cout << " Processing file " << f << endl;
-      	string out = run_system(overfeat+" -L 15 "+f);
+      	string out = run_system(overfeat+" -f "+f);
       	//remove("overtmp.jpg");
 	build_svm_n(out,fout,classValue);
       }
