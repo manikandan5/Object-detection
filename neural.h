@@ -18,12 +18,16 @@ public:
     int classValue=1;
     ofstream fout("train_n_svm.data");
     for(Dataset::const_iterator c_iter=filenames.begin(); c_iter != filenames.end(); ++c_iter) {
+      int k = 0;
       for(int i=0; i<c_iter->second.size(); ++i) {
       	string fname = c_iter->second[i];
-      	get_file(fname).save("overtmp.jpg");
-	cout << " Processing file " << fname << endl;
-      	string out = run_system(overfeat+" -f overtmp.jpg");
-      	remove("overtmp.jpg");
+	string f = fname;
+	replace(f.begin(),f.end(),'/','_');
+	f = "./n/"+f;
+      	get_file(fname).save(f.c_str());
+	cout << " Processing file " << f << endl;
+      	string out = run_system(overfeat+" -L 15 "+f);
+      	//remove("overtmp.jpg");
 	build_svm_n(out,fout,classValue);
       }
       classValue++;
@@ -37,7 +41,7 @@ public:
     tmp<< out ;
     int n,l,h;
     tmp >> n; tmp>> l; tmp >> h;
-    int i =  0;
+    int i =  1;
     fout << classValue << " ";
     while(n>=0) {
       double t;
@@ -46,7 +50,7 @@ public:
       n--;
       i++;
     }
-    fout << "\n";
+    fout << endl;
   }
   int get_index(string f,vector<string> class_list) {
     for (int i = 0; i < class_list.size();i++) {
@@ -58,12 +62,15 @@ public:
   }
 
   virtual string classify(const string &filename) {
-    ofstream fout("train_n_tmp.data");
-    get_file(filename).save("overtmp.jpg");
+    ofstream fout("test_n_tmp.data");
+    string f = filename;
+    replace(f.begin(),f.end(),'/','_');
+    f = "./n/"+f;
+    get_file(filename).save(f.c_str());
     int i = get_index(filename,class_list);
-    string out = run_system(overfeat+" -f overtmp.jpg");
-    remove("overtmp.jpg");
-    build_svm_n(out,fout,i);
+    string out = run_system((overfeat+" -f " + f).c_str());
+    //    remove("overtmp.jpg");
+    build_svm_n(out,fout,i+1);
     fout.close();
     system("./svm_bin/svm_multiclass_classify test_n_tmp.data svm_neural_train classify.tmp");
     ifstream cl("classify.tmp");

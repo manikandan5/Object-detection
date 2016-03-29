@@ -1,4 +1,27 @@
 
+#include<map>
+#include<vector>
+#include<string>
+#include<iostream>
+#include <Utility.h>
+#include<ctime>
+#include<cmath>
+#include <fstream>
+using namespace std;
+
+bool compareNoCase (string first, string second)
+{
+  int i=0;
+  while ((i < first.length()) && (i < second.length()))
+    {
+      if (tolower (first[i]) < tolower (second[i])) return true;
+      else if (tolower (first[i]) > tolower (second[i])) return false;
+      i++;
+    }
+
+  if (first.length() < second.length()) return true;
+  else return false;
+}
 
 class Classifier
 {
@@ -19,7 +42,7 @@ public:
   {
     cerr << "Loading model..." << endl;
     load_model();
-
+    sort (class_list.begin(), class_list.end(), compareNoCase);
     // loop through images, doing classification
     map<string, map<string, string> > predictions;
     for(map<string, vector<string> >::const_iterator c_iter=filenames.begin(); c_iter != filenames.end(); ++c_iter) 
