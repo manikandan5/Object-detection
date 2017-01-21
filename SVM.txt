@@ -1,0 +1,59 @@
+SVM with grayscale
+Confusion matrix:
+                     ba br br ch ch cr fr ha ho ja ku la mu pa pi po pu sa sa sc sp su ta ti wa 
+               bagel  3. 0  0  1  1  2  0  1  0  0  0  0  0  0  0  0  1  0  0  0  0  0  0  0  1 
+               bread  1  0. 0  0  1  0  0  0  2  0  0  1  1  0  0  0  0  0  0  1  0  2  0  0  1 
+             brownie  1  0  1. 1  0  0  0  1  0  0  0  0  1  0  0  1  0  1  0  2  0  0  0  1  0 
+       chickennugget  0  0  0  0. 0  1  1  0  3  0  0  0  0  0  1  1  2  0  0  0  1  0  0  0  0 
+              churro  0  1  1  1  1. 0  0  1  0  0  0  0  0  0  0  0  3  0  0  1  0  0  0  1  0 
+           croissant  1  1  1  1  0  0. 0  2  0  0  0  0  0  0  0  0  0  1  1  1  0  0  1  0  0 
+         frenchfries  0  0  0  2  1  0  1. 0  1  1  0  0  0  1  0  0  1  0  1  0  0  0  1  0  0 
+           hamburger  1  0  0  1  0  1  1  6. 0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0 
+              hotdog  0  0  0  3  1  2  0  0  1. 0  0  0  0  0  0  0  0  0  1  0  1  1  0  0  0 
+           jambalaya  3  0  1  1  1  0  1  0  0  0. 0  0  0  0  0  1  2  0  0  0  0  0  0  0  0 
+      kungpaochicken  1  1  1  1  0  0  0  1  0  0  0. 0  0  0  1  0  0  1  1  0  1  0  0  0  1 
+             lasagna  1  0  0  0  0  1  0  2  3  0  0  1. 0  1  0  0  1  0  0  0  0  0  0  0  0 
+              muffin  0  0  1  1  1  0  0  3  0  0  0  0  0. 0  0  0  0  0  0  1  0  1  0  1  1 
+              paella  0  1  0  2  0  0  0  1  1  0  0  1  0  0. 0  1  2  0  1  0  0  0  0  0  0 
+               pizza  0  0  0  1  1  1  0  1  1  0  0  0  0  1  1. 0  2  0  0  0  0  0  0  1  0 
+             popcorn  0  1  0  1  0  0  0  0  1  0  0  1  1  0  2  1. 0  0  1  1  0  0  0  0  0 
+             pudding  0  0  0  0  0  0  1  1  1  0  0  0  0  1  0  1  3. 0  0  1  0  0  0  0  1 
+               salad  0  0  1  1  0  2  1  0  0  0  0  0  2  0  0  0  1  0. 0  0  1  0  0  1  0 
+              salmon  1  1  0  0  0  0  2  2  1  0  0  0  0  0  0  1  0  0  0. 1  0  0  0  1  0 
+               scone  0  0  0  0  1  1  0  1  2  0  0  2  0  0  0  0  1  0  0  1. 0  0  0  0  1 
+           spaghetti  0  0  0  0  1  1  2  0  0  0  0  0  0  1  0  0  1  0  0  1  2. 0  0  0  1 
+               sushi  1  1  1  0  0  0  0  1  0  0  0  0  1  0  0  1  1  1  0  1  0  1. 0  0  0 
+                taco  1  0  0  0  0  1  0  0  1  1  0  0  0  0  0  0  2  0  1  0  0  0  2. 0  1 
+            tiramisu  0  1  1  0  0  0  0  0  1  0  0  0  2  0  1  0  1  0  0  0  0  0  1  1. 1 
+              waffle  1  0  0  0  0  0  0  0  0  1  0  0  0  1  0  0  2  1  0  2  0  0  2  0  0.
+Classifier accuracy: 26 of 250 =    10%  (versus random guessing accuracy of     4%)
+
+SVM with color : 
+Confusion matrix:
+                     ba br br ch ch cr fr ha ho ja ku la mu pa pi po pu sa sa sc sp su ta ti wa 
+               bagel  2. 0  0  1  2  0  0  1  0  0  0  1  1  0  1  0  0  0  0  0  0  0  0  0  1 
+               bread  1  1. 0  0  0  0  0  0  2  0  0  1  0  0  1  1  0  0  0  0  0  2  0  0  1 
+             brownie  1  0  3. 0  0  0  0  2  0  1  0  0  0  0  0  0  0  0  1  1  0  0  0  1  0 
+       chickennugget  0  0  0  0. 0  0  2  0  3  0  0  0  1  0  0  0  3  0  0  0  1  0  0  0  0 
+              churro  0  0  0  1  1. 0  1  1  2  0  1  0  1  0  0  0  2  0  0  0  0  0  0  0  0 
+           croissant  0  1  1  2  1  0. 0  1  1  0  1  0  0  0  0  0  0  1  0  0  0  0  0  1  0 
+         frenchfries  0  0  0  1  0  0  2. 0  0  0  0  0  0  2  0  0  2  0  0  2  1  0  0  0  0 
+           hamburger  1  0  0  0  0  0  1  8. 0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0 
+              hotdog  1  1  0  3  0  2  0  0  1. 0  1  0  1  0  0  0  0  0  0  0  0  0  0  0  0 
+           jambalaya  2  0  1  3  0  0  1  0  1  0. 0  0  0  0  0  0  0  0  0  0  2  0  0  0  0 
+      kungpaochicken  0  0  1  1  0  0  0  1  1  0  0. 0  0  0  0  0  0  0  2  0  2  0  0  0  2 
+             lasagna  0  0  1  0  1  0  1  1  2  1  0  0. 0  1  0  0  1  0  0  0  0  0  0  0  1 
+              muffin  1  0  1  1  0  0  0  2  1  0  0  0  1. 0  0  0  0  0  1  0  0  0  0  1  1 
+              paella  0  0  0  0  0  1  0  1  1  0  0  0  0  2. 1  1  2  0  1  0  0  0  0  0  0 
+               pizza  2  0  0  1  2  0  0  0  0  0  0  1  0  0  3. 0  0  0  0  0  0  0  0  1  0 
+             popcorn  1  0  0  0  0  0  0  0  0  0  0  2  1  0  1  0. 0  1  0  2  0  1  1  0  0 
+             pudding  0  1  0  1  0  1  1  1  0  0  0  0  0  0  0  1  3. 0  0  0  0  0  0  0  1 
+               salad  0  0  0  0  0  0  0  0  0  0  0  1  0  0  0  0  3  5. 0  0  0  0  1  0  0 
+              salmon  1  2  0  0  0  0  1  0  1  0  0  0  0  0  0  1  0  0  0. 2  1  0  0  0  1 
+               scone  0  0  1  0  1  0  0  0  1  0  0  1  0  0  0  2  0  0  0  1. 1  0  0  1  1 
+           spaghetti  0  1  0  1  0  0  0  0  0  0  0  0  0  1  0  0  1  0  0  1  3. 0  1  0  1 
+               sushi  2  2  1  0  1  0  0  0  0  0  0  0  1  0  0  1  0  0  0  0  0  2. 0  0  0 
+                taco  0  0  2  1  0  1  1  0  0  0  1  0  0  0  1  0  0  0  0  0  1  0  1. 0  1 
+            tiramisu  1  1  1  0  0  0  0  0  0  0  0  0  2  0  0  0  0  0  0  0  0  0  1  3. 1 
+              waffle  1  0  0  0  0  0  1  1  0  0  1  0  0  1  0  0  0  0  0  0  1  0  2  0  2.
+Classifier accuracy: 44 of 250 =    18%  (versus random guessing accuracy of     4%)
