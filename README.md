@@ -18,26 +18,26 @@ Detailed explanation about how the code works and the reason why we chose this i
 
 **How to run the program?** 
 
-This command compiles the program:
+This command compiles the program: <br>
     * make 
 
-To run the baseline algorithm:
+To run the baseline algorithm: <br>
     * ./a3 train baseline 
       ./a3 test baseline
   
-To run the Eigen faces algorithm:
+To run the Eigen faces algorithm: <br>
     * ./a3 train eigen 
       ./a3 test eigen
 
-To run the HAAR algorithm:
+To run the HAAR algorithm: <br>
     * ./a3 train haar 
       ./a3 test haar
 
-To run the Bag of Words algorithm:
+To run the Bag of Words algorithm: <br>
     * ./a3 train bow 
       ./a3 test bow
 
-To run the Convolutional Neural Networks:
+To run the Convolutional Neural Networks: <br>
     * make init
       ./a3 train deep 
       ./a3 test deep
